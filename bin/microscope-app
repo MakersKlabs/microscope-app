@@ -1,4 +1,4 @@
 #!/bin/sh
-# Launcher installato in /usr/bin/microscope-app
+# Launcher installed as /usr/bin/microscope-app
 export PYTHONPATH="/usr/lib/microscope-app${PYTHONPATH:+:$PYTHONPATH}"
 exec python3 -m microscope_app "$@"

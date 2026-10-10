@@ -1,19 +1,40 @@
+microscope-app (1.2.0) unstable; urgency=medium
+
+  * Full English/Italian translation of every user-visible string,
+    including the fallback camera names.
+    Traduzione completa inglese/italiano di ogni stringa visibile,
+    compresi i nomi di ripiego delle telecamere.
+  * Bilingual Debian package description and changelog.
+    Descrizione del pacchetto Debian e changelog bilingui.
+
+ -- Microscope contributors <microscope@localhost>  Thu, 01 Jan 2026 00:00:00 +0100
+
 microscope-app (1.1.0) unstable; urgency=medium
 
-  * Interfaccia bilingue (inglese / italiano) con selettore della lingua
+  * Bilingual interface (English / Italian) with a language selector in
+    Settings (System / English / Italiano).
+    Interfaccia bilingue (inglese / italiano) con selettore della lingua
     in Impostazioni (Sistema / English / Italiano).
-  * README in inglese e italiano.
-  * Commenti e docstring del codice in inglese.
+  * README in English and Italian.
+    README in inglese e italiano.
+  * Code comments and docstrings in English.
+    Commenti e docstring del codice in inglese.
 
  -- Microscope contributors <microscope@localhost>  Thu, 01 Jan 2026 00:00:00 +0100
 
 microscope-app (1.0.0) unstable; urgency=medium
 
-  * Prima versione.
-  * Selezione telecamera, risoluzione e frame rate.
-  * Rotazione e specchiatura con memoria per telecamera.
-  * Zoom con rotellina, pan con click sinistro, fit con click destro.
-  * Salvataggio fotografie PNG con memoria dell'ultima cartella.
-  * Registrazione video compressa (H.264 / MPEG-4) con memoria dell'ultima cartella.
+  * First release.
+    Prima versione.
+  * Camera, resolution and frame rate selection.
+    Selezione telecamera, risoluzione e frame rate.
+  * Rotation and mirroring remembered per camera.
+    Rotazione e specchiatura con memoria per telecamera.
+  * Zoom with the wheel, pan with the left click, fit with the right click.
+    Zoom con rotellina, pan con click sinistro, fit con click destro.
+  * PNG photo capture remembering the last folder.
+    Salvataggio fotografie PNG con memoria dell'ultima cartella.
+  * Compressed video recording (H.264 / MPEG-4) remembering the last folder.
+    Registrazione video compressa (H.264 / MPEG-4) con memoria dell'ultima cartella.
 
  -- Microscope contributors <microscope@localhost>  Thu, 01 Jan 2026 00:00:00 +0100

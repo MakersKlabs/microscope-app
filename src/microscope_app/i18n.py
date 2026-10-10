@@ -14,6 +14,7 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
     "en": {
         # Toolbar
         "camera": "Camera",
+        "camera_fallback": "Camera {index}",
         "resolution": "Resolution",
         "fps": "FPS",
         "refresh": "Refresh",
@@ -78,10 +79,19 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "ok": "OK",
         "cancel": "Cancel",
         "reset_camera": "Reset camera",
+        # x264 encoder speed presets
+        "preset_ultrafast": "Ultrafast",
+        "preset_superfast": "Superfast",
+        "preset_veryfast": "Very fast",
+        "preset_faster": "Faster",
+        "preset_fast": "Fast",
+        "preset_medium": "Medium",
+        "preset_slow": "Slow",
     },
     "it": {
         # Barra strumenti
         "camera": "Camera",
+        "camera_fallback": "Camera {index}",
         "resolution": "Risoluzione",
         "fps": "FPS",
         "refresh": "Aggiorna",
@@ -146,6 +156,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "ok": "OK",
         "cancel": "Annulla",
         "reset_camera": "Ripristina camera",
+        # Preset di velocit\u00e0 x264
+        "preset_ultrafast": "Ultra veloce",
+        "preset_superfast": "Super veloce",
+        "preset_veryfast": "Molto veloce",
+        "preset_faster": "Pi\u00f9 veloce",
+        "preset_fast": "Veloce",
+        "preset_medium": "Medio",
+        "preset_slow": "Lento",
     },
 }
 

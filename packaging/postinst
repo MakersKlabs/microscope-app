@@ -1,5 +1,5 @@
 #!/bin/sh
-# Script post-installazione del pacchetto microscope-app.
+# Post-install script for the microscope-app package.
 set -e
 
 if command -v update-desktop-database >/dev/null 2>&1; then

@@ -12,6 +12,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .i18n import tr
+
 #: Frame rates used as a fallback when the camera reports none.
 DEFAULT_FRAMERATES = [30.0, 15.0, 10.0, 5.0, 1.0]
 
@@ -139,7 +141,7 @@ def _enumerate_gst() -> list:
             continue
         seen.add(path)
         index = int(match.group(1))
-        name = (device.get_display_name() or f"Camera {index}").strip()
+        name = (device.get_display_name() or tr("camera_fallback", index=index)).strip()
         try:
             resolutions, framerates = _caps_to_options(device.get_caps())
         except Exception:
@@ -164,7 +166,7 @@ def _enumerate_sysfs() -> list:
         try:
             name = name_file.read_text(encoding="utf-8").strip()
         except OSError:
-            name = f"Camera {index}"
+            name = tr("camera_fallback", index=index)
         cameras.append(CameraInfo(index, f"/dev/{entry.name}", name, [], []))
     cameras.sort(key=lambda cam: cam.index)
     return cameras

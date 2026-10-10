@@ -29,6 +29,7 @@ from .cameras import (
 from .capture import CaptureThread
 from .i18n import get_language, set_language, tr
 from .image_view import ImageView
+from .qt_i18n import install_qt_translator
 from .recorder import VideoRecorder, available_encoders
 from .settings_dialog import SettingsDialog
 from .settings_store import SettingsStore
@@ -65,6 +66,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.settings = settings or SettingsStore()
         set_language(self.settings.get("language", "system"))
+        install_qt_translator(get_language())
 
         self._cameras: list[CameraInfo] = []
         self._camera: CameraInfo | None = None
@@ -448,7 +450,11 @@ class MainWindow(QMainWindow):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         default_path = str(Path(self.settings.image_dir()) / f"microscope_{timestamp}.png")
         path, _ = QFileDialog.getSaveFileName(
-            self, tr("save_image_title"), default_path, tr("filter_images")
+            self,
+            tr("save_image_title"),
+            default_path,
+            tr("filter_images"),
+            options=QFileDialog.Option.DontUseNativeDialog,
         )
         if not path:
             return
@@ -491,7 +497,11 @@ class MainWindow(QMainWindow):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         default_path = str(Path(self.settings.video_dir()) / f"microscope_{timestamp}.mp4")
         path, _ = QFileDialog.getSaveFileName(
-            self, tr("save_video_title"), default_path, tr("filter_videos")
+            self,
+            tr("save_video_title"),
+            default_path,
+            tr("filter_videos"),
+            options=QFileDialog.Option.DontUseNativeDialog,
         )
         if not path:
             self._set_record_checked(False)
@@ -605,6 +615,7 @@ class MainWindow(QMainWindow):
             if language != self.settings.get("language"):
                 self.settings.set("language", language)
                 set_language(language)
+                install_qt_translator(get_language())
                 self.retranslate_ui()
             self.settings.save()
             self._store_camera_settings()

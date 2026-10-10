@@ -109,10 +109,9 @@ class SettingsDialog(QDialog):
         video_form.addRow(tr("quality_label"), quality_row)
 
         self.preset_combo = QComboBox()
-        self.preset_combo.addItems(PRESETS)
-        preset = video.get("preset", "veryfast")
-        if preset in PRESETS:
-            self.preset_combo.setCurrentText(preset)
+        for preset in PRESETS:
+            self.preset_combo.addItem(tr("preset_" + preset), preset)
+        self._select_data(self.preset_combo, video.get("preset", "veryfast"))
         video_form.addRow(tr("speed_label"), self.preset_combo)
         root.addWidget(video_group)
 
@@ -167,7 +166,7 @@ class SettingsDialog(QDialog):
         return {
             "codec": self.codec_combo.currentData() or "mpeg4",
             "crf": int(self.crf_slider.value()),
-            "preset": self.preset_combo.currentText(),
+            "preset": self.preset_combo.currentData() or "veryfast",
         }
 
     def language_value(self) -> str:
