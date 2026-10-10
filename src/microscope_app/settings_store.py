@@ -1,8 +1,8 @@
-"""Gestione della persistenza delle impostazioni.
+"""Persistence of the application settings.
 
-Le impostazioni sono salvate in ``~/.config/microscope-app/settings.json`` e
-includono le preferenze specifiche per ogni telecamera (rotazione, specchiature,
-risoluzione e frame rate), oltre all'ultima cartella usata per foto e video.
+Settings are stored in ``~/.config/microscope-app/settings.json`` and include
+per-camera preferences (rotation, mirroring, resolution and frame rate), the
+last folders used for photos and videos, and the UI language.
 """
 
 from __future__ import annotations
@@ -15,18 +15,19 @@ from pathlib import Path
 
 APP_ID = "microscope-app"
 
-#: Impostazioni predefinite di una singola telecamera.
+#: Default settings for a single camera.
 DEFAULT_CAMERA_SETTINGS = {
-    "rotation": 0,        # 0, 90, 180, 270 (senso orario)
-    "flip_h": False,      # specchiatura asse orizzontale
-    "flip_v": False,      # specchiatura asse verticale
+    "rotation": 0,        # 0, 90, 180, 270 (clockwise)
+    "flip_h": False,      # mirror on the horizontal axis
+    "flip_v": False,      # mirror on the vertical axis
     "width": None,
     "height": None,
     "fps": None,
 }
 
-#: Impostazioni globali predefinite.
+
 def _guess_dir(candidates: list) -> str:
+    """Return the first existing folder among ``candidates``, else the home."""
     for name in candidates:
         path = Path.home() / name
         if path.is_dir():
@@ -34,9 +35,11 @@ def _guess_dir(candidates: list) -> str:
     return str(Path.home())
 
 
+#: Default global settings.
 DEFAULTS = {
     "cameras": {},
     "selected_camera": None,
+    "language": "system",           # "system", "en" or "it"
     "last_image_dir": _guess_dir(["Immagini", "Pictures"]),
     "last_video_dir": _guess_dir(["Video", "Videos"]),
     "video_codec": "libx264",
@@ -58,18 +61,18 @@ def config_path() -> Path:
 
 
 def _ensure_dir_for(directory: str) -> str:
-    """Restituisce una directory esistente, ricadendo sulla home."""
+    """Return an existing folder, falling back to the home directory."""
     try:
-        p = Path(directory)
-        if p.is_dir():
-            return str(p)
+        path = Path(directory)
+        if path.is_dir():
+            return str(path)
     except (OSError, TypeError):
         pass
     return str(Path.home())
 
 
 class SettingsStore:
-    """Contenitore JSON con salvataggio atomico."""
+    """JSON container with atomic saving."""
 
     def __init__(self, path: str | os.PathLike | None = None) -> None:
         self._path = Path(path) if path is not None else config_path()
@@ -113,10 +116,10 @@ class SettingsStore:
                     pass
                 raise
         except OSError:
-            # Non bloccare mai l'applicazione per un errore di scrittura.
+            # Never block the application because of a write error.
             pass
 
-    # -- Accesso generico --------------------------------------------------
+    # -- Generic access ----------------------------------------------------
     def get(self, key: str, default=None):
         return self._data.get(key, default)
 
@@ -129,7 +132,7 @@ class SettingsStore:
     def video_dir(self) -> str:
         return _ensure_dir_for(self._data.get("last_video_dir"))
 
-    # -- Impostazioni per telecamera --------------------------------------
+    # -- Per-camera settings ----------------------------------------------
     def camera_settings(self, camera_key: str) -> dict:
         settings = copy.deepcopy(DEFAULT_CAMERA_SETTINGS)
         stored = self._data.get("cameras", {}).get(camera_key)

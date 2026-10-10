@@ -1,8 +1,8 @@
-"""Registratore video compresso basato su PyAV (FFmpeg).
+"""Compressed video recorder based on PyAV (FFmpeg).
 
-I frame BGR provenienti dal thread di acquisizione vengono accodati e codificati
-in un thread separato, così da non rallentare l'anteprima. Se il codificatore
-non riesce a stare al passo, i frame in eccesso vengono scartati.
+BGR frames coming from the capture thread are queued and encoded on a separate
+thread, so they do not slow down the preview. If the encoder cannot keep up,
+excess frames are dropped.
 """
 
 from __future__ import annotations
@@ -12,7 +12,9 @@ import threading
 import time
 from fractions import Fraction
 
-#: Sequenza di codificatori provata in ordine di preferenza.
+from .i18n import tr
+
+#: Encoders tried in order of preference.
 CODEC_FALLBACKS = ("libx264", "libx265", "mpeg4", "mpeg2video")
 
 CODEC_LABELS = {
@@ -24,7 +26,7 @@ CODEC_LABELS = {
 
 
 def available_encoders() -> list:
-    """Restituisce i codificatori realmente disponibili."""
+    """Return the encoders that are actually available."""
     try:
         import av
     except Exception:
@@ -40,7 +42,7 @@ def available_encoders() -> list:
 
 
 class VideoRecorder:
-    """Codifica una sequenza di frame in un file compresso."""
+    """Encode a sequence of frames into a compressed file."""
 
     def __init__(
         self,
@@ -53,7 +55,7 @@ class VideoRecorder:
         preset: str = "veryfast",
     ) -> None:
         self.path = path
-        # yuv420p richiede dimensioni pari.
+        # yuv420p requires even dimensions.
         self.width = int(width) - (int(width) % 2)
         self.height = int(height) - (int(height) % 2)
         self.fps = float(fps) if fps and fps > 0 else 30.0
@@ -71,14 +73,14 @@ class VideoRecorder:
         )
         self._started = False
 
-    # -- API pubblica ------------------------------------------------------
+    # -- Public API --------------------------------------------------------
     def start(self) -> None:
         if not self._started:
             self._thread.start()
             self._started = True
 
     def submit(self, frame) -> None:
-        """Accoda un frame (BGR). Scarta il frame più vecchio se pieno."""
+        """Queue a frame (BGR). The oldest frame is dropped when full."""
         try:
             self._queue.put_nowait(frame)
         except queue.Full:
@@ -87,7 +89,7 @@ class VideoRecorder:
     def close(self) -> None:
         if not self._started:
             return
-        # Sentinella di fine stream; se la coda è piena rimuoviamo un frame.
+        # End-of-stream sentinel; remove a frame if the queue is full.
         while True:
             try:
                 self._queue.put_nowait(None)
@@ -99,7 +101,7 @@ class VideoRecorder:
                     pass
         self._thread.join(timeout=15)
 
-    # -- Interno -----------------------------------------------------------
+    # -- Internals ---------------------------------------------------------
     def _pick_codec(self):
         import av
 
@@ -116,8 +118,8 @@ class VideoRecorder:
     def _run(self) -> None:
         try:
             import av
-        except Exception as exc:  # pragma: no cover - dipendenza mancante
-            self.error = f"PyAV non disponibile: {exc}"
+        except Exception as exc:  # pragma: no cover - missing dependency
+            self.error = tr("error_pyav_missing", error=exc)
             return
 
         container = None
@@ -145,7 +147,7 @@ class VideoRecorder:
                 frame = self._queue.get()
                 if frame is None:
                     break
-                # Ritaglio di sicurezza per dimensioni pari.
+                # Safety crop for even dimensions.
                 if frame.shape[1] > self.width or frame.shape[0] > self.height:
                     frame = frame[: self.height, : self.width]
                 video_frame = av.VideoFrame.from_ndarray(frame, format="bgr24")
@@ -158,7 +160,7 @@ class VideoRecorder:
             for packet in stream.encode(None):
                 container.mux(packet)
         except Exception as exc:
-            self.error = f"Errore di registrazione: {exc}"
+            self.error = tr("error_recording", error=exc)
         finally:
             if container is not None:
                 try:

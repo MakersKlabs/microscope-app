@@ -1,3 +1,12 @@
+microscope-app (1.1.0) unstable; urgency=medium
+
+  * Interfaccia bilingue (inglese / italiano) con selettore della lingua
+    in Impostazioni (Sistema / English / Italiano).
+  * README in inglese e italiano.
+  * Commenti e docstring del codice in inglese.
+
+ -- Microscope contributors <microscope@localhost>  Thu, 01 Jan 2026 00:00:00 +0100
+
 microscope-app (1.0.0) unstable; urgency=medium
 
   * Prima versione.

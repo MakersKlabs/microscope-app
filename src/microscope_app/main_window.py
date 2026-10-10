@@ -1,4 +1,4 @@
-"""Finestra principale dell'applicazione."""
+"""Main application window."""
 
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ from .cameras import (
     normalize_resolutions,
 )
 from .capture import CaptureThread
+from .i18n import get_language, set_language, tr
 from .image_view import ImageView
 from .recorder import VideoRecorder, available_encoders
 from .settings_dialog import SettingsDialog
@@ -58,11 +59,12 @@ def _record_icon(color: str = "#e74c3c", size: int = 16) -> QIcon:
 
 
 class MainWindow(QMainWindow):
-    """Finestra principale con barra degli strumenti e visore."""
+    """Main window with the toolbar and the image view."""
 
     def __init__(self, settings: SettingsStore | None = None) -> None:
         super().__init__()
         self.settings = settings or SettingsStore()
+        set_language(self.settings.get("language", "system"))
 
         self._cameras: list[CameraInfo] = []
         self._camera: CameraInfo | None = None
@@ -89,7 +91,7 @@ class MainWindow(QMainWindow):
         self.refresh_cameras()
 
     # ------------------------------------------------------------------
-    # Costruzione interfaccia
+    # UI construction
     # ------------------------------------------------------------------
     def _build_ui(self) -> None:
         central = QWidget(self)
@@ -97,84 +99,75 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        toolbar = QToolBar("Comandi")
+        toolbar = QToolBar("Commands", self)
         toolbar.setMovable(False)
         toolbar.setIconSize(QSize(18, 18))
         toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         layout.addWidget(toolbar)
 
-        # Selezione telecamera -----------------------------------------
-        toolbar.addWidget(QLabel(" Camera "))
+        # Camera selection ---------------------------------------------
+        self.camera_label = QLabel(self)
+        toolbar.addWidget(self.camera_label)
         self.camera_combo = QComboBox()
         self.camera_combo.setMinimumWidth(230)
         self.camera_combo.currentIndexChanged.connect(self._on_camera_combo)
         toolbar.addWidget(self.camera_combo)
 
         self.refresh_action = QAction(
-            _themed_icon("view-refresh", "reload"), "Aggiorna", self
+            _themed_icon("view-refresh", "reload"), "", self
         )
-        self.refresh_action.setToolTip("Cerca di nuovo le telecamere collegate")
         self.refresh_action.triggered.connect(self.refresh_cameras)
         toolbar.addAction(self.refresh_action)
         toolbar.addSeparator()
 
-        # Risoluzione e frame rate -------------------------------------
-        toolbar.addWidget(QLabel(" Risoluzione "))
+        # Resolution and frame rate ------------------------------------
+        self.resolution_label = QLabel(self)
+        toolbar.addWidget(self.resolution_label)
         self.resolution_combo = QComboBox()
         self.resolution_combo.setMinimumWidth(140)
         self.resolution_combo.currentIndexChanged.connect(self._on_resolution_changed)
         toolbar.addWidget(self.resolution_combo)
 
-        toolbar.addWidget(QLabel(" FPS "))
+        self.fps_label = QLabel(self)
+        toolbar.addWidget(self.fps_label)
         self.fps_combo = QComboBox()
         self.fps_combo.currentIndexChanged.connect(self._on_fps_changed)
         toolbar.addWidget(self.fps_combo)
         toolbar.addSeparator()
 
-        # Rotazione / specchiatura -------------------------------------
-        self.rotate_action = QAction("Ruota 0°", self)
-        self.rotate_action.setToolTip("Ruota l'immagine di 90° (senso orario)")
+        # Rotation / mirroring -----------------------------------------
+        self.rotate_action = QAction("", self)
         self.rotate_action.triggered.connect(self._rotate)
         toolbar.addAction(self.rotate_action)
 
-        self.flip_h_action = QAction("Specchia H", self)
+        self.flip_h_action = QAction("", self)
         self.flip_h_action.setCheckable(True)
-        self.flip_h_action.setToolTip("Specchia sull'asse orizzontale")
         self.flip_h_action.toggled.connect(self._on_flip_toggled)
         toolbar.addAction(self.flip_h_action)
 
-        self.flip_v_action = QAction("Specchia V", self)
+        self.flip_v_action = QAction("", self)
         self.flip_v_action.setCheckable(True)
-        self.flip_v_action.setToolTip("Specchia sull'asse verticale")
         self.flip_v_action.toggled.connect(self._on_flip_toggled)
         toolbar.addAction(self.flip_v_action)
         toolbar.addSeparator()
 
-        # Azioni principali --------------------------------------------
-        self.fit_action = QAction(
-            _themed_icon("zoom-fit-best", "zoom-original"), "Adatta", self
-        )
-        self.fit_action.setToolTip("Adatta l'immagine alla finestra (anche click destro)")
+        # Main actions -------------------------------------------------
+        self.fit_action = QAction(_themed_icon("zoom-fit-best", "zoom-original"), "", self)
         self.fit_action.triggered.connect(self.image_view_fit)
         toolbar.addAction(self.fit_action)
 
-        self.photo_action = QAction(
-            _themed_icon("camera-photo", "camera"), "Foto", self
-        )
-        self.photo_action.setToolTip("Salva l'immagine corrente in PNG (Ctrl+S)")
+        self.photo_action = QAction(_themed_icon("camera-photo", "camera"), "", self)
         self.photo_action.triggered.connect(self.save_photo)
         toolbar.addAction(self.photo_action)
 
-        self.record_action = QAction(_record_icon(), "Registra", self)
+        self.record_action = QAction(_record_icon(), "", self)
         self.record_action.setCheckable(True)
-        self.record_action.setToolTip("Avvia/ferma la registrazione video (Ctrl+R)")
         self.record_action.toggled.connect(self._on_record_toggled)
         toolbar.addAction(self.record_action)
 
         self.settings_action = QAction(
-            _themed_icon("preferences-system", "emblem-system"), "Impostazioni", self
+            _themed_icon("preferences-system", "emblem-system"), "", self
         )
-        self.settings_action.setToolTip("Impostazioni immagine e video")
         self.settings_action.triggered.connect(self.open_settings)
         toolbar.addAction(self.settings_action)
 
@@ -183,8 +176,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.image_view, 1)
         self.setCentralWidget(central)
 
-        # Barra di stato -----------------------------------------------
-        self.status_camera = QLabel("Ricerca telecamere…")
+        # Status bar ---------------------------------------------------
+        self.status_camera = QLabel(tr("searching"))
         self.status_info = QLabel("")
         self.status_recording = QLabel("")
         self.statusBar().addWidget(self.status_camera, 1)
@@ -194,6 +187,41 @@ class MainWindow(QMainWindow):
         self._record_timer = QTimer(self)
         self._record_timer.setInterval(1000)
         self._record_timer.timeout.connect(self._on_record_tick)
+
+        self.retranslate_ui()
+
+    def retranslate_ui(self) -> None:
+        """Refresh every translatable text for the active language."""
+        self.camera_label.setText(tr("camera"))
+        self.resolution_label.setText(tr("resolution"))
+        self.fps_label.setText(tr("fps"))
+
+        self.refresh_action.setText(tr("refresh"))
+        self.refresh_action.setToolTip(tr("refresh_tip"))
+
+        self.rotate_action.setToolTip(tr("rotate_tip"))
+        self._update_rotate_label()
+
+        self.flip_h_action.setText(tr("mirror_h"))
+        self.flip_h_action.setToolTip(tr("mirror_h_tip"))
+        self.flip_v_action.setText(tr("mirror_v"))
+        self.flip_v_action.setToolTip(tr("mirror_v_tip"))
+
+        self.fit_action.setText(tr("fit"))
+        self.fit_action.setToolTip(tr("fit_tip"))
+        self.photo_action.setText(tr("photo"))
+        self.photo_action.setToolTip(tr("photo_tip"))
+        self.record_action.setText(
+            tr("stop") if self.record_action.isChecked() else tr("record")
+        )
+        self.record_action.setToolTip(tr("record_tip"))
+        self.settings_action.setText(tr("settings"))
+        self.settings_action.setToolTip(tr("settings_tip"))
+
+        if self._camera is None and not self._cameras:
+            self.status_camera.setText(tr("no_camera"))
+        if self.record_action.isChecked():
+            self._on_record_tick()
 
     def _wire_shortcuts(self) -> None:
         self.photo_action.setShortcut("Ctrl+S")
@@ -212,7 +240,7 @@ class MainWindow(QMainWindow):
                 pass
 
     # ------------------------------------------------------------------
-    # Gestione telecamere
+    # Camera handling
     # ------------------------------------------------------------------
     def refresh_cameras(self) -> None:
         selected_key = self._camera.key if self._camera else self.settings.get(
@@ -253,7 +281,7 @@ class MainWindow(QMainWindow):
             self._camera_settings = {}
             self._set_controls_enabled(False)
             self.image_view.clear()
-            self.status_camera.setText("Nessuna telecamera disponibile")
+            self.status_camera.setText(tr("no_camera"))
             self.status_info.setText("")
             return
 
@@ -328,7 +356,7 @@ class MainWindow(QMainWindow):
             self._capture = None
 
     # ------------------------------------------------------------------
-    # Slot di acquisizione
+    # Acquisition slots
     # ------------------------------------------------------------------
     def _on_frame(self, qimage, frame, index: int) -> None:
         self._last_frame = frame
@@ -356,10 +384,10 @@ class MainWindow(QMainWindow):
         QMessageBox.warning(self, __app_name__, message)
 
     # ------------------------------------------------------------------
-    # Rotazione / specchiatura
+    # Rotation / mirroring
     # ------------------------------------------------------------------
     def _update_rotate_label(self) -> None:
-        self.rotate_action.setText(f"Ruota {self._rotation}°")
+        self.rotate_action.setText(tr("rotate", degrees=self._rotation))
 
     def _rotate(self) -> None:
         self._rotation = (self._rotation + 90) % 360
@@ -379,7 +407,7 @@ class MainWindow(QMainWindow):
         self._store_camera_settings()
 
     # ------------------------------------------------------------------
-    # Cambio risoluzione / fps
+    # Resolution / fps changes
     # ------------------------------------------------------------------
     def _on_resolution_changed(self, _index: int) -> None:
         if self._populating or self._camera is None:
@@ -392,7 +420,7 @@ class MainWindow(QMainWindow):
         self._launch_capture()
 
     # ------------------------------------------------------------------
-    # Salvataggio impostazioni camera
+    # Camera settings persistence
     # ------------------------------------------------------------------
     def _store_camera_settings(self) -> None:
         if self._camera is None:
@@ -410,20 +438,17 @@ class MainWindow(QMainWindow):
         self.settings.save()
 
     # ------------------------------------------------------------------
-    # Foto
+    # Photos
     # ------------------------------------------------------------------
     def save_photo(self) -> None:
         if self._last_frame is None:
-            self.statusBar().showMessage("Nessuna immagine da salvare.", 4000)
+            self.statusBar().showMessage(tr("no_image_to_save"), 4000)
             return
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         default_path = str(Path(self.settings.image_dir()) / f"microscope_{timestamp}.png")
         path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Salva immagine",
-            default_path,
-            "PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tif *.tiff)",
+            self, tr("save_image_title"), default_path, tr("filter_images")
         )
         if not path:
             return
@@ -442,14 +467,12 @@ class MainWindow(QMainWindow):
         if cv2.imwrite(path, self._last_frame, params):
             self.settings.set("last_image_dir", str(Path(path).parent))
             self.settings.save()
-            self.statusBar().showMessage(f"Immagine salvata: {path}", 6000)
+            self.statusBar().showMessage(tr("image_saved", path=path), 6000)
         else:
-            QMessageBox.warning(
-                self, __app_name__, f"Salvataggio non riuscito:\n{path}"
-            )
+            QMessageBox.warning(self, __app_name__, tr("save_failed", path=path))
 
     # ------------------------------------------------------------------
-    # Registrazione video
+    # Video recording
     # ------------------------------------------------------------------
     def _on_record_toggled(self, checked: bool) -> None:
         if self._record_guard:
@@ -461,19 +484,14 @@ class MainWindow(QMainWindow):
 
     def _start_recording(self) -> None:
         if self._capture is None or self._last_frame is None:
-            self.statusBar().showMessage(
-                "Nessun flusso video da registrare.", 4000
-            )
+            self.statusBar().showMessage(tr("no_video_stream"), 4000)
             self._set_record_checked(False)
             return
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         default_path = str(Path(self.settings.video_dir()) / f"microscope_{timestamp}.mp4")
         path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Salva video",
-            default_path,
-            "Video MP4 (*.mp4);;Matroska (*.mkv);;QuickTime (*.mov)",
+            self, tr("save_video_title"), default_path, tr("filter_videos")
         )
         if not path:
             self._set_record_checked(False)
@@ -499,9 +517,9 @@ class MainWindow(QMainWindow):
         self._record_seconds = 0
         self._record_timer.start()
         self._set_record_checked(True)
-        self.record_action.setText("Ferma")
+        self.record_action.setText(tr("stop"))
         self._set_controls_enabled(False)
-        self.statusBar().showMessage(f"Registrazione avviata: {path}", 5000)
+        self.statusBar().showMessage(tr("recording_started", path=path), 5000)
         self._on_record_tick()
 
     def _stop_recording(self, silent: bool = False) -> None:
@@ -511,7 +529,7 @@ class MainWindow(QMainWindow):
             self._capture.recorder = None
         self._record_timer.stop()
         self._set_record_checked(False)
-        self.record_action.setText("Registra")
+        self.record_action.setText(tr("record"))
         if self._camera is not None:
             self._set_controls_enabled(True)
 
@@ -528,9 +546,12 @@ class MainWindow(QMainWindow):
             self.settings.save()
             if not silent:
                 self.statusBar().showMessage(
-                    f"Video salvato: {recorder.path} "
-                    f"({recorder.frames_written} frame, "
-                    f"{recorder.frames_dropped} scartati)",
+                    tr(
+                        "video_saved",
+                        path=recorder.path,
+                        frames=recorder.frames_written,
+                        dropped=recorder.frames_dropped,
+                    ),
                     8000,
                 )
 
@@ -543,7 +564,7 @@ class MainWindow(QMainWindow):
             if hours
             else f"{minutes:02d}:{seconds:02d}"
         )
-        self.status_recording.setText(f"● REC  {stamp}   ")
+        self.status_recording.setText(tr("recording_status", time=stamp))
 
     def _set_record_checked(self, checked: bool) -> None:
         self._record_guard = True
@@ -551,7 +572,7 @@ class MainWindow(QMainWindow):
         self._record_guard = False
 
     # ------------------------------------------------------------------
-    # Impostazioni
+    # Settings
     # ------------------------------------------------------------------
     def open_settings(self) -> None:
         original = (
@@ -564,7 +585,13 @@ class MainWindow(QMainWindow):
             "crf": self.settings.get("video_crf", 23),
             "preset": self.settings.get("video_preset", "veryfast"),
         }
-        dialog = SettingsDialog(self, self._camera_settings, video, self._video_encoders)
+        dialog = SettingsDialog(
+            self,
+            self._camera_settings,
+            video,
+            self._video_encoders,
+            language=self.settings.get("language", "system"),
+        )
         dialog.transformChanged.connect(self._on_transform_from_dialog)
         dialog.reset_button.clicked.connect(dialog.reset_to_defaults)
 
@@ -573,10 +600,16 @@ class MainWindow(QMainWindow):
             self.settings.set("video_codec", values["codec"])
             self.settings.set("video_crf", values["crf"])
             self.settings.set("video_preset", values["preset"])
+
+            language = dialog.language_value()
+            if language != self.settings.get("language"):
+                self.settings.set("language", language)
+                set_language(language)
+                self.retranslate_ui()
             self.settings.save()
             self._store_camera_settings()
         else:
-            # Annulla: ripristina la trasformazione precedente.
+            # Cancel: restore the previous transform.
             self._rotation = original[0]
             self.flip_h_action.blockSignals(True)
             self.flip_v_action.blockSignals(True)
@@ -601,7 +634,7 @@ class MainWindow(QMainWindow):
         self._apply_transform_runtime()
 
     # ------------------------------------------------------------------
-    # Utilità
+    # Utilities
     # ------------------------------------------------------------------
     def image_view_fit(self) -> None:
         self.image_view.fit()
@@ -622,7 +655,7 @@ class MainWindow(QMainWindow):
             return path
         return path + default
 
-    def closeEvent(self, event) -> None:  # noqa: N802 (API Qt)
+    def closeEvent(self, event) -> None:  # noqa: N802 (Qt API)
         self._stop_recording(silent=True)
         self._stop_capture()
         self._store_camera_settings()

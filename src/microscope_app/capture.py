@@ -1,4 +1,4 @@
-"""Thread di acquisizione dei frame dalla telecamera."""
+"""Frame acquisition thread."""
 
 from __future__ import annotations
 
@@ -8,18 +8,20 @@ import numpy as np
 from PySide6.QtCore import QMutex, QMutexLocker, QThread, Signal
 from PySide6.QtGui import QImage
 
+from .i18n import tr
+
 
 class CaptureThread(QThread):
-    """Legge in continuazione i frame dalla telecamera e li trasforma.
+    """Continuously read frames from the camera and transform them.
 
-    I frame vengono emessi già ruotati/specchiati verso il thread grafico sotto
-    forma di :class:`QImage`; lo stesso array NumPy (BGR) viene inoltrato al
-    registratore video, se attivo, tramite il callback :attr:`recorder`.
+    Frames are emitted already rotated/mirrored to the GUI thread as a
+    :class:`QImage`; the same NumPy array (BGR) is forwarded to the video
+    recorder, when active, through the :attr:`recorder` callback.
     """
 
-    frameReady = Signal(QImage, object, int)   # immagine, array BGR, indice
-    stats = Signal(float)                       # frame per secondo reali
-    opened = Signal(int, int)                   # larghezza, altezza reali
+    frameReady = Signal(QImage, object, int)   # image, BGR array, index
+    stats = Signal(float)                       # real frames per second
+    opened = Signal(int, int)                   # real width, height
     error = Signal(str)
 
     def __init__(self, camera, width=None, height=None, fps=None, parent=None):
@@ -33,10 +35,10 @@ class CaptureThread(QThread):
         self._flip_v = False
         self._running = False
         self._lock = QMutex()
-        #: callback opzionale ``callable(frame)`` richiamato con il frame BGR
+        #: optional ``callable(frame)`` invoked with the BGR frame
         self.recorder = None
 
-    # -- Configurazione ---------------------------------------------------
+    # -- Configuration -----------------------------------------------------
     def set_transform(self, rotation: int, flip_h: bool, flip_v: bool) -> None:
         with QMutexLocker(self._lock):
             self._rotation = int(rotation) % 360
@@ -55,15 +57,13 @@ class CaptureThread(QThread):
         if self.isRunning():
             self.wait(timeout_ms)
 
-    # -- Loop --------------------------------------------------------------
-    def run(self) -> None:  # noqa: C901 - flusso lineare ma con più controlli
+    # -- Main loop ---------------------------------------------------------
+    def run(self) -> None:  # noqa: C901 - linear flow with several checks
         import cv2
 
         capture = cv2.VideoCapture(self.camera.index, cv2.CAP_V4L2)
         if not capture.isOpened():
-            self.error.emit(
-                f"Impossibile aprire la telecamera {self.camera.path}."
-            )
+            self.error.emit(tr("error_open_camera", path=self.camera.path))
             return
 
         try:
@@ -80,10 +80,7 @@ class CaptureThread(QThread):
 
             ok, frame = capture.read()
             if not ok or frame is None:
-                self.error.emit(
-                    f"Nessun frame dalla telecamera {self.camera.path}. "
-                    "Verifica che non sia usata da un altro programma."
-                )
+                self.error.emit(tr("error_no_frame", path=self.camera.path))
                 return
 
             height, width = frame.shape[:2]
@@ -99,7 +96,7 @@ class CaptureThread(QThread):
                 if not ok or frame is None:
                     failures += 1
                     if failures > 60:
-                        self.error.emit("Flusso video interrotto.")
+                        self.error.emit(tr("error_stream_interrupted"))
                         break
                     time.sleep(0.01)
                     continue

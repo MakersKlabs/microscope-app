@@ -1,4 +1,4 @@
-"""Widget di visualizzazione con zoom, pan e fit."""
+"""Image view widget with zoom, pan and fit."""
 
 from __future__ import annotations
 
@@ -11,11 +11,11 @@ MAX_SCALE = 60.0
 
 
 class ImageView(QGraphicsView):
-    """Vista immagine interattiva.
+    """Interactive image view.
 
-    * rotellina del mouse: zoom verso il puntatore;
-    * click sinistro trascinato: pan;
-    * click destro: adatta l'immagine alla finestra (fit).
+    * mouse wheel: zoom towards the pointer;
+    * left button dragged: pan;
+    * right click: fit the image to the window.
     """
 
     def __init__(self, parent=None) -> None:
@@ -41,7 +41,7 @@ class ImageView(QGraphicsView):
         self._has_image = False
         self._fit_mode = True
 
-    # -- Contenuto ---------------------------------------------------------
+    # -- Content -----------------------------------------------------------
     def has_image(self) -> bool:
         return self._has_image
 
@@ -63,7 +63,7 @@ class ImageView(QGraphicsView):
         self._has_image = False
         self._fit_mode = True
 
-    # -- Navigazione -------------------------------------------------------
+    # -- Navigation --------------------------------------------------------
     def fit(self) -> None:
         if not self._has_image:
             return
@@ -90,8 +90,8 @@ class ImageView(QGraphicsView):
     def zoom_out(self) -> None:
         self.zoom(1 / 1.25)
 
-    # -- Eventi ------------------------------------------------------------
-    def wheelEvent(self, event) -> None:  # noqa: N802 (API Qt)
+    # -- Events ------------------------------------------------------------
+    def wheelEvent(self, event) -> None:  # noqa: N802 (Qt API)
         delta = event.angleDelta().y()
         if delta == 0:
             super().wheelEvent(event)
@@ -99,7 +99,7 @@ class ImageView(QGraphicsView):
         self.zoom(1.25 if delta > 0 else 1 / 1.25)
         event.accept()
 
-    def mousePressEvent(self, event) -> None:  # noqa: N802 (API Qt)
+    def mousePressEvent(self, event) -> None:  # noqa: N802 (Qt API)
         if event.button() == Qt.MouseButton.RightButton:
             self.fit()
             event.accept()
@@ -108,11 +108,11 @@ class ImageView(QGraphicsView):
             self._fit_mode = False
         super().mousePressEvent(event)
 
-    def mouseDoubleClickEvent(self, event) -> None:  # noqa: N802 (API Qt)
+    def mouseDoubleClickEvent(self, event) -> None:  # noqa: N802 (Qt API)
         self.fit()
         event.accept()
 
-    def keyPressEvent(self, event) -> None:  # noqa: N802 (API Qt)
+    def keyPressEvent(self, event) -> None:  # noqa: N802 (Qt API)
         key = event.key()
         if key in (Qt.Key.Key_Plus, Qt.Key.Key_Equal):
             self.zoom_in()

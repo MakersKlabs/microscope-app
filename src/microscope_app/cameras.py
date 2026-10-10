@@ -1,8 +1,9 @@
-"""Individuazione delle telecamere collegate al sistema.
+"""Discovery of the cameras connected to the system.
 
-Viene usato il ``GstDeviceMonitor`` di GStreamer (se disponibile) per ottenere
-nome, percorso del device e capacità (risoluzioni e frame rate). Se GStreamer
-non è disponibile si ricade sulla semplice enumerazione di ``/sys/class/video4linux``.
+GStreamer's ``GstDeviceMonitor`` is used (when available) to obtain the device
+name, its ``/dev/videoN`` path and its capabilities (resolutions and frame
+rates). If GStreamer is missing we fall back to a plain scan of
+``/sys/class/video4linux``.
 """
 
 from __future__ import annotations
@@ -11,23 +12,23 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-#: Frame rate di ripiego se la telecamera non li dichiara.
+#: Frame rates used as a fallback when the camera reports none.
 DEFAULT_FRAMERATES = [30.0, 15.0, 10.0, 5.0, 1.0]
 
 
 @dataclass
 class CameraInfo:
-    """Descrizione di una telecamera utilizzabile."""
+    """Description of a usable camera."""
 
-    index: int                  # indice OpenCV (N di /dev/videoN)
+    index: int                  # OpenCV index (the N of /dev/videoN)
     path: str                   # /dev/videoN
-    name: str                   # nome leggibile
-    resolutions: list = field(default_factory=list)  # lista di (w, h)
-    framerates: list = field(default_factory=list)   # lista di float
+    name: str                   # human readable name
+    resolutions: list = field(default_factory=list)  # list of (w, h)
+    framerates: list = field(default_factory=list)   # list of float
 
     @property
     def key(self) -> str:
-        """Chiave stabile usata per memorizzare le impostazioni."""
+        """Stable key used to store the per-camera settings."""
         return self.name.strip() or self.path
 
     @property
@@ -36,7 +37,7 @@ class CameraInfo:
 
 
 # ---------------------------------------------------------------------------
-# Parsing delle capacità GStreamer
+# GStreamer capability parsing
 # ---------------------------------------------------------------------------
 def _extract_ints(value: str) -> list:
     return [int(x) for x in re.findall(r"\d+", value)]
@@ -46,7 +47,7 @@ _NUM_OR_LIST = r"(\[[^\]]*\]|\{[^}]*\}|\d+)"
 
 
 def _parse_structure(structure) -> tuple[list, list, list]:
-    """Estrae (widths, heights, framerates) da una Gst.Structure."""
+    """Extract (widths, heights, framerates) from a Gst.Structure."""
     text = structure.to_string()
     widths: list = []
     heights: list = []
@@ -96,7 +97,7 @@ def _caps_to_options(caps) -> tuple[list, list]:
 
 
 # ---------------------------------------------------------------------------
-# Enumerazione
+# Enumeration
 # ---------------------------------------------------------------------------
 def _enumerate_gst() -> list:
     try:
@@ -130,7 +131,7 @@ def _enumerate_gst() -> list:
         except Exception:
             path = None
 
-        # Ignoriamo i duplicati (provider senza percorso) e i doppioni.
+        # Skip duplicates (providers without a path) and repeated entries.
         if not path or path in seen:
             continue
         match = re.search(r"(\d+)$", path)
@@ -170,7 +171,7 @@ def _enumerate_sysfs() -> list:
 
 
 def enumerate_cameras() -> list:
-    """Restituisce l'elenco delle telecamere disponibili."""
+    """Return the list of available cameras."""
     cameras = _enumerate_gst()
     if not cameras:
         cameras = _enumerate_sysfs()

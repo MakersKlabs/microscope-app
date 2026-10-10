@@ -1,4 +1,4 @@
-"""Punto di ingresso dell'applicazione Qt."""
+"""Qt application entry point."""
 
 from __future__ import annotations
 

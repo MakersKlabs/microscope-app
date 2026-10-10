@@ -1,4 +1,4 @@
-"""Finestra di dialogo delle impostazioni."""
+"""Settings dialog."""
 
 from __future__ import annotations
 
@@ -17,59 +17,84 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from .i18n import tr
 from .recorder import CODEC_LABELS
 
 PRESETS = ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow"]
 
-ROTATIONS = [(0, "0°"), (90, "90° (orario)"), (180, "180°"), (270, "270° (antiorario)")]
+
+def _rotation_options() -> list:
+    return [
+        (0, tr("rotation_0")),
+        (90, tr("rotation_90")),
+        (180, tr("rotation_180")),
+        (270, tr("rotation_270")),
+    ]
 
 
 class SettingsDialog(QDialog):
-    """Dialogo impostazioni immagine e registrazione.
+    """Image and recording settings dialog.
 
-    I cambi di rotazione e specchiatura vengono applicati in tempo reale
-    (segui :attr:`transformChanged`), mentre le opzioni video vengono lette
-    alla conferma.
+    Rotation and mirror changes are applied live (see :attr:`transformChanged`),
+    while the video options are read on confirmation.
     """
 
     transformChanged = Signal(int, bool, bool)
 
-    def __init__(self, parent, camera_settings: dict, video: dict, encoders: list):
+    def __init__(
+        self,
+        parent,
+        camera_settings: dict,
+        video: dict,
+        encoders: list,
+        language: str = "system",
+    ):
         super().__init__(parent)
-        self.setWindowTitle("Impostazioni")
+        self.setWindowTitle(tr("settings_title"))
         self.setModal(True)
 
         root = QVBoxLayout(self)
 
-        # -- Immagine ------------------------------------------------------
-        image_group = QGroupBox("Immagine")
+        # -- Language ------------------------------------------------------
+        language_group = QGroupBox(tr("group_language"))
+        language_form = QFormLayout(language_group)
+        self.language_combo = QComboBox()
+        self.language_combo.addItem(tr("language_system"), "system")
+        self.language_combo.addItem("English", "en")
+        self.language_combo.addItem("Italiano", "it")
+        self._select_data(self.language_combo, language)
+        language_form.addRow(tr("language_label"), self.language_combo)
+        root.addWidget(language_group)
+
+        # -- Image ---------------------------------------------------------
+        image_group = QGroupBox(tr("group_image"))
         image_form = QFormLayout(image_group)
 
         self.rotation_combo = QComboBox()
-        for value, label in ROTATIONS:
+        for value, label in _rotation_options():
             self.rotation_combo.addItem(label, value)
         self._select_data(self.rotation_combo, int(camera_settings.get("rotation", 0)))
-        image_form.addRow("Rotazione:", self.rotation_combo)
+        image_form.addRow(tr("rotation_label"), self.rotation_combo)
 
         flips = QHBoxLayout()
-        self.flip_h_check = QCheckBox("Orizzontale")
-        self.flip_v_check = QCheckBox("Verticale")
+        self.flip_h_check = QCheckBox(tr("mirror_horizontal"))
+        self.flip_v_check = QCheckBox(tr("mirror_vertical"))
         self.flip_h_check.setChecked(bool(camera_settings.get("flip_h", False)))
         self.flip_v_check.setChecked(bool(camera_settings.get("flip_v", False)))
         flips.addWidget(self.flip_h_check)
         flips.addWidget(self.flip_v_check)
-        image_form.addRow("Specchia:", flips)
+        image_form.addRow(tr("mirror_label"), flips)
         root.addWidget(image_group)
 
-        # -- Registrazione -------------------------------------------------
-        video_group = QGroupBox("Registrazione video")
+        # -- Recording -----------------------------------------------------
+        video_group = QGroupBox(tr("group_video"))
         video_form = QFormLayout(video_group)
 
         self.codec_combo = QComboBox()
         for codec in encoders or ["mpeg4"]:
             self.codec_combo.addItem(CODEC_LABELS.get(codec, codec), codec)
         self._select_data(self.codec_combo, video.get("codec", "libx264"))
-        video_form.addRow("Codificatore:", self.codec_combo)
+        video_form.addRow(tr("encoder_label"), self.codec_combo)
 
         quality_row = QHBoxLayout()
         self.crf_slider = QSlider(Qt.Orientation.Horizontal)
@@ -81,41 +106,40 @@ class SettingsDialog(QDialog):
         )
         quality_row.addWidget(self.crf_slider, 1)
         quality_row.addWidget(self.crf_value)
-        video_form.addRow("Qualità (CRF):", quality_row)
+        video_form.addRow(tr("quality_label"), quality_row)
 
         self.preset_combo = QComboBox()
         self.preset_combo.addItems(PRESETS)
         preset = video.get("preset", "veryfast")
         if preset in PRESETS:
             self.preset_combo.setCurrentText(preset)
-        video_form.addRow("Velocità:", self.preset_combo)
+        video_form.addRow(tr("speed_label"), self.preset_combo)
         root.addWidget(video_group)
 
-        hint = QLabel(
-            "CRF più basso = qualità migliore e file più grandi. "
-            "La velocità influisce solo sul tempo di codifica."
-        )
+        hint = QLabel(tr("video_hint"))
         hint.setWordWrap(True)
         hint.setStyleSheet("color: palette(mid);")
         root.addWidget(hint)
 
-        # -- Pulsanti ------------------------------------------------------
+        # -- Buttons -------------------------------------------------------
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok
             | QDialogButtonBox.StandardButton.Cancel
         )
-        self.reset_button = QPushButton("Ripristina camera")
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText(tr("ok"))
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(tr("cancel"))
+        self.reset_button = QPushButton(tr("reset_camera"))
         buttons.addButton(self.reset_button, QDialogButtonBox.ButtonRole.ResetRole)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         root.addWidget(buttons)
 
-        # Applicazione in tempo reale della geometria immagine.
+        # Live application of the image geometry.
         self.rotation_combo.currentIndexChanged.connect(self._emit_transform)
         self.flip_h_check.toggled.connect(self._emit_transform)
         self.flip_v_check.toggled.connect(self._emit_transform)
 
-    # -- Utility -----------------------------------------------------------
+    # -- Utilities ---------------------------------------------------------
     @staticmethod
     def _select_data(combo: QComboBox, value) -> None:
         index = combo.findData(value)
@@ -125,13 +149,13 @@ class SettingsDialog(QDialog):
         self.transformChanged.emit(*self.transform_values())
 
     def reset_to_defaults(self) -> None:
-        """Ripristina rotazione e specchiature ai valori predefiniti."""
+        """Restore rotation and mirroring to their default values."""
         self._select_data(self.rotation_combo, 0)
         self.flip_h_check.setChecked(False)
         self.flip_v_check.setChecked(False)
         self._emit_transform()
 
-    # -- Risultati ---------------------------------------------------------
+    # -- Results -----------------------------------------------------------
     def transform_values(self) -> tuple[int, bool, bool]:
         return (
             int(self.rotation_combo.currentData() or 0),
@@ -145,3 +169,6 @@ class SettingsDialog(QDialog):
             "crf": int(self.crf_slider.value()),
             "preset": self.preset_combo.currentText(),
         }
+
+    def language_value(self) -> str:
+        return self.language_combo.currentData() or "system"
