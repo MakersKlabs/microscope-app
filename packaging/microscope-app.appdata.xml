@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>microscope-app.desktop</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Microscope</name>
+  <summary>Capture images and videos from a USB microscope camera</summary>
+  <summary xml:lang="it">Acquisisci immagini e video da una telecamera per microscopio USB</summary>
+  <description>
+    <p>
+      Microscope is a simple desktop application to acquire live images from a
+      high resolution USB camera connected to a microscope. It allows selecting
+      the camera and resolution, rotating and mirroring the image, navigating
+      with zoom and pan, saving PNG photographs and recording compressed video.
+    </p>
+    <p xml:lang="it">
+      Microscope è una semplice applicazione desktop per acquisire immagini in
+      tempo reale da una telecamera USB ad alta risoluzione collegata a un
+      microscopio. Permette di scegliere la telecamera e la risoluzione, ruotare
+      e specchiare l'immagine, navigare con zoom e pan, salvare fotografie PNG e
+      registrare video compressi.
+    </p>
+  </description>
+  <launchable type="desktop-id">microscope-app.desktop</launchable>
+  <icon type="stock">microscope-app</icon>
+  <categories>
+    <category>Science</category>
+    <category>Graphics</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+</component>

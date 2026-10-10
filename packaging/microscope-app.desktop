@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Microscope
+Name[it]=Microscopio
+GenericName=Microscope Imaging
+GenericName[it]=Acquisizione microscopio
+Comment=Capture images and videos from a USB microscope camera
+Comment[it]=Acquisisci immagini e video da una telecamera per microscopio USB
+Exec=microscope-app
+Icon=microscope-app
+Terminal=false
+Categories=Science;Graphics;Education;
+Keywords=microscope;camera;imaging;capture;microscopy;usb;
+Keywords[it]=microscopio;telecamera;acquisizione;video;foto;
+StartupNotify=true
+StartupWMClass=microscope-app

@@ -1,0 +1,10 @@
+microscope-app (1.0.0) unstable; urgency=medium
+
+  * Prima versione.
+  * Selezione telecamera, risoluzione e frame rate.
+  * Rotazione e specchiatura con memoria per telecamera.
+  * Zoom con rotellina, pan con click sinistro, fit con click destro.
+  * Salvataggio fotografie PNG con memoria dell'ultima cartella.
+  * Registrazione video compressa (H.264 / MPEG-4) con memoria dell'ultima cartella.
+
+ -- Microscope contributors <microscope@localhost>  Thu, 01 Jan 2026 00:00:00 +0100
