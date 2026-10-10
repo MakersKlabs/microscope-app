@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Ambienti virtuali
+.venv/
+venv/
+env/
+
+# Artefatti di build
+build/
+dist/
+*.deb
+*.AppImage
+*.spec
+
+# Editor / sistema
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Log
+*.log
